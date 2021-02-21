@@ -1,0 +1,8 @@
+version: "2"
+services:
+  apache:
+    image: docker.io/bitnami/apache:2.4-debian-10
+    ports:
+      - 8085:8080
+    volumes:
+      - "./dist:/app"
