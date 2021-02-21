@@ -2,7 +2,6 @@ const path = require("path");
 
 module.exports = {
   watch: true,
-  mode
   watchOptions: {
     ignored: /node_modules/,
   },

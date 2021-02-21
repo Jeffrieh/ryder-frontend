@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "webpack",
+    "dev": "webpack --mode=development",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,6 +16,7 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
+    "cannon": "^0.6.2",
     "lodash": "^4.17.21",
     "three": "^0.125.2"
   }

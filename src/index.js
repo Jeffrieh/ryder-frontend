@@ -1,11 +1,9 @@
 import _ from "lodash";
+import Scene from "./Scene";
 
-function component() {
-  const element = document.createElement("div");
+const scene = new Scene();
 
-  element.innerHTML = "<canvas id='test'>";
-
-  return element;
-}
+//start setup
+scene.setup();
 
 document.body.appendChild(component());
