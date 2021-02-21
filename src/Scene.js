@@ -1,6 +1,7 @@
 import {
   BoxBufferGeometry,
   Mesh,
+  BoxGeometry,
   MeshBasicMaterial,
   PerspectiveCamera,
   Scene as Scene,
@@ -17,6 +18,7 @@ export default class RyderScene {
     this.clock = null;
     this.renderer = null;
     this.camera = null;
+    this.cube = null;
   }
 
   setup() {
@@ -33,14 +35,17 @@ export default class RyderScene {
 
     this.addObjects();
 
-    // this.renderer.setAnimationLoop(() => {
-    //   this.draw();
-    // });
-
-    console.log("hallo");
+    this.renderer.setAnimationLoop(() => {
+      this.draw();
+    });
   }
 
-  draw() {}
+  draw() {
+    this.renderer.render(this.scene, this.camera);
+    this.cube.rotation.x += 0.01;
+    this.cube.rotation.y += 0.01;
+  }
+
   setCamera() {
     this.camera = new PerspectiveCamera(
       75,
@@ -49,11 +54,20 @@ export default class RyderScene {
       1000
     );
   }
+
   setRender() {
     this.renderer = new WebGLRenderer();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
   }
-  addObjects() {}
+
+  addObjects() {
+    const geometry = new BoxGeometry();
+    const material = new MeshBasicMaterial({ color: 0x00ff00 });
+    this.cube = new Mesh(geometry, material);
+    this.scene.add(this.cube);
+    this.camera.position.z = 5;
+  }
+
   setLights() {}
 }

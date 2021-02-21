@@ -5,5 +5,3 @@ const scene = new Scene();
 
 //start setup
 scene.setup();
-
-document.body.appendChild(component());
