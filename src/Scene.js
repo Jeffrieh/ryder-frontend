@@ -8,24 +8,28 @@ import {
   Scene as Scene,
   PlaneGeometry,
   Fog,
+  AxesHelper,
   Clock,
   PointLight,
   DoubleSide,
   WebGLRenderer,
 } from "three";
 
-import C from "cannon";
+import CANNON from "cannon";
 
 export default class RyderScene {
   constructor() {}
 
   setup() {
-    this.world = new C.World();
-    this.world.gravity.set(0, -50, 0);
+    this.world = new CANNON.World();
+    this.world.gravity.set(0, -10, 0);
 
     // Set Three components
     this.scene = new Scene();
     this.scene.fog = new Fog(0x202533, -1, 100);
+
+    const axesHelper = new AxesHelper(5);
+    this.scene.add(axesHelper);
 
     this.clock = new Clock();
 
@@ -46,6 +50,11 @@ export default class RyderScene {
 
   updatePhysics() {
     this.world.step(1 / 60);
+    this.cube.position.set(
+      this.cubeBody.position.x,
+      this.cubeBody.position.y,
+      this.cubeBody.position.z
+    );
   }
 
   draw() {
@@ -79,6 +88,25 @@ export default class RyderScene {
     this.cube.translateY(2);
     this.scene.add(this.cube);
 
+    const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+    this.cubeBody = new CANNON.Body({ mass: 1 });
+    this.cubeBody.addShape(cubeShape);
+    this.cubeBody.position.x = this.cube.position.x;
+    this.cubeBody.position.y = this.cube.position.y;
+    this.cubeBody.position.z = this.cube.position.z;
+    this.world.addBody(this.cubeBody);
+
+    //set plane
+
+    const planeShape = new CANNON.Plane();
+    const planeBody = new CANNON.Body({ mass: 0 });
+    planeBody.addShape(planeShape);
+    planeBody.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(1, 0, 0),
+      -Math.PI / 2
+    );
+    this.world.addBody(planeBody);
+
     const plane = new Mesh(
       new PlaneGeometry(50, 50, 1),
       new MeshBasicMaterial({ color: 0xffff00, side: DoubleSide })
@@ -88,6 +116,10 @@ export default class RyderScene {
     this.scene.add(plane);
 
     this.camera.position.z = 5;
+  }
+
+  updateControls(){
+    
   }
 
   setLights() {
