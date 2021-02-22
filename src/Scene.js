@@ -16,6 +16,7 @@ import {
 } from "three";
 
 import CANNON from "cannon";
+import KeyBoardState from "./KeyboardState";
 
 export default class RyderScene {
   constructor() {}
@@ -23,6 +24,9 @@ export default class RyderScene {
   setup() {
     this.world = new CANNON.World();
     this.world.gravity.set(0, -10, 0);
+
+    console.log(KeyBoardState());
+    this.KeyBoardState = KeyBoardState;
 
     // Set Three components
     this.scene = new Scene();
@@ -59,6 +63,7 @@ export default class RyderScene {
 
   draw() {
     this.cube.rotation.z += 0.01;
+    console.log(KeyBoardState.currentKey());
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -73,6 +78,7 @@ export default class RyderScene {
 
   setRender() {
     this.renderer = new WebGLRenderer();
+
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
   }
@@ -118,9 +124,7 @@ export default class RyderScene {
     this.camera.position.z = 5;
   }
 
-  updateControls(){
-    
-  }
+  updateControls() {}
 
   setLights() {
     const light = new PointLight(0xfff000, 10, 1000);
