@@ -1,13 +1,31 @@
 const path = require("path");
+var webpack = require("webpack");
 
 module.exports = {
-  watch: true,
-  watchOptions: {
-    ignored: /node_modules/,
+  resolve: {
+    alias: {
+      "three/OrbitControls": path.join(
+        __dirname,
+        "node_modules/three/examples/js/controls/OrbitControls.js"
+      ),
+      "three/OBJLoader": path.join(
+        __dirname,
+        "node_modules/three/examples/js/loaders/OBJLoader.js"
+      ),
+      // ...
+    },
   },
+  watch: true,
+  watchOptions: {},
   entry: "./src/index.js",
   output: {
     filename: "main.js",
     path: path.resolve(__dirname, "dist"),
   },
+  plugins: [
+    new webpack.ProvidePlugin({
+      THREE: "three",
+    }),
+    //...
+  ],
 };
