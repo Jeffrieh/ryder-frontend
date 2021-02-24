@@ -59,6 +59,15 @@ export default class RyderScene {
   }
 
   draw() {
+    const points = [];
+    points.push(new THREE.Vector3(1, 0, 0));
+    points.push(new THREE.Vector3(1, 0, this.player.position.z * -1));
+    points.push(new THREE.Vector3(1, 0, 0));
+
+    console.log(this.player.position.z);
+
+    const g = new THREE.BufferGeometry().setFromPoints(points);
+    this.player.children[1].geometry = g;
     const currentKey = KeyBoardState.currentKey();
     // this.camera.position.x = this.cube.position.x - 0;
     // this.camera.position.z = this.cube.position.z + 5;
