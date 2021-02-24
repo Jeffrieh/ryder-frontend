@@ -5,11 +5,12 @@ import CANNON from "cannon";
 import KeyBoardState from "./KeyboardState";
 
 export default class RyderScene {
-  constructor() {}
+  constructor() {
+    this.objects = [];
+  }
 
   setup() {
     this.world = new CANNON.World();
-    this.world.gravity.set(0, -10, 0);
 
     console.log(KeyBoardState());
     this.KeyBoardState = KeyBoardState;
@@ -22,6 +23,7 @@ export default class RyderScene {
     this.scene.add(axesHelper);
 
     this.clock = new THREE.Clock();
+    this.clock.start();
 
     this.speedX = 0.1;
 
@@ -30,19 +32,18 @@ export default class RyderScene {
     this.setLights();
     this.setRender();
 
-    this.controls = new THREE.OrbitControls(
-      this.camera,
-      this.renderer.domElement
-    );
-    this.controls.minDistance = 10;
-    this.controls.maxDistance = 500;
-
     this.addObjects();
 
     this.camera.position.y = 5;
     this.camera.position.x = -5;
     this.camera.rotation.x = (30 * Math.PI) / 180;
-    this.camera.lookAt(this.cube);
+    this.camera.lookAt(this.player);
+
+    const controls = new THREE.OrbitControls(
+      this.camera,
+      this.renderer.domElement
+    );
+    controls.update();
 
     this.renderer.setClearColor(0xffffff, 0);
 
@@ -53,27 +54,28 @@ export default class RyderScene {
   }
 
   updatePhysics() {
+    this.syncObjects();
     this.world.step(1 / 60);
   }
 
   draw() {
     const currentKey = KeyBoardState.currentKey();
-    this.camera.lookAt(this.cube.position);
-    this.camera.position.x = this.cube.position.x - 5;
-    this.camera.position.y = this.cube.position.y + 5;
+    // this.camera.position.x = this.cube.position.x - 0;
+    // this.camera.position.z = this.cube.position.z + 5;
+    // this.camera.position.y = this.cube.position.y + 5;
     if (currentKey != null) {
       switch (currentKey) {
         case "w":
-          this.cube.position.z -= this.speedX;
+          this.player.body.position.z -= this.speedX;
           break;
         case "a":
-          this.cube.position.x -= this.speedX;
+          this.player.body.position.x -= this.speedX;
           break;
         case "s":
-          this.cube.position.z += this.speedX;
+          this.player.body.position.z += this.speedX;
           break;
         case "d":
-          this.cube.position.x += this.speedX;
+          this.player.body.position.x += this.speedX;
           break;
       }
     }
@@ -97,26 +99,66 @@ export default class RyderScene {
     document.body.appendChild(this.renderer.domElement);
   }
 
-  addObjects() {
-    this.cube = new THREE.Mesh(
+  syncObjects() {
+    for (const obj of this.objects) {
+      obj.position.copy(obj.body.position);
+      obj.quaternion.copy(obj.body.quaternion);
+    }
+  }
+
+  addPlayer(x, y, z, fn) {
+    const player = new THREE.Mesh(
       new THREE.BoxGeometry(),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
 
-    this.scene.add(this.cube);
+    const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
 
-    const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
-    this.cubeBody = new CANNON.Body({ mass: 1 });
-    this.cubeBody.addShape(cubeShape);
-    this.cubeBody.position.x = this.cube.position.x;
-    this.cubeBody.position.y = this.cube.position.y;
-    this.cubeBody.position.z = this.cube.position.z;
-    this.world.addBody(this.cubeBody);
+    const points = [];
+    points.push(new THREE.Vector3(1, 0, 0));
+    points.push(new THREE.Vector3(1, 0, 3));
+    points.push(new THREE.Vector3(1, 0, 0));
 
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+
+    player.position.set(x, y, z);
+    line.position.set(x - 1, y, z);
+
+    const group = new THREE.Group();
+
+    group.add(player);
+    group.add(line);
+
+    group.body = new CANNON.Body({ mass: 0 });
+    group.body.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)));
+    group.body.position.x = group.position.x;
+    group.body.position.y = group.position.y;
+    group.body.position.z = group.position.z;
+
+    group.body.addEventListener("collide", function (e) {
+      fn(e);
+    });
+
+    this.objects.push(group);
+
+    this.world.addBody(group.body);
+
+    return group;
+  }
+
+  addObjects() {
     //set plane
+
+    this.player = this.addPlayer(0, 3, 0, () => {
+      console.log("collide!");
+    });
+
+    this.scene.add(this.player);
 
     const planeShape = new CANNON.Plane();
     const planeBody = new CANNON.Body({ mass: 0 });
+
     planeBody.addShape(planeShape);
     planeBody.quaternion.setFromAxisAngle(
       new CANNON.Vec3(1, 0, 0),
