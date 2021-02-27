@@ -11,6 +11,7 @@ export default class RyderScene {
 
   setup() {
     this.world = new CANNON.World();
+    this.world.gravity.set(0, -20, 0);
 
     console.log(KeyBoardState());
     this.KeyBoardState = KeyBoardState;
@@ -34,16 +35,11 @@ export default class RyderScene {
 
     this.addObjects();
 
-    this.camera.position.y = 5;
-    this.camera.position.x = -5;
-    this.camera.rotation.x = (30 * Math.PI) / 180;
-    this.camera.lookAt(this.player);
-
-    const controls = new THREE.OrbitControls(
-      this.camera,
-      this.renderer.domElement
-    );
-    controls.update();
+    // const controls = new THREE.OrbitControls(
+    //   this.camera,
+    //   this.renderer.domElement
+    // );
+    // controls.update();
 
     this.renderer.setClearColor(0xffffff, 0);
 
@@ -60,31 +56,51 @@ export default class RyderScene {
 
   draw() {
     const points = [];
-    points.push(new THREE.Vector3(1, 0, 0));
-    points.push(new THREE.Vector3(1, 0, this.player.position.z * -1));
-    points.push(new THREE.Vector3(1, 0, 0));
+    points.push(new THREE.Vector3(0, 0, 1));
+    points.push(new THREE.Vector3(this.player.position.z * -1), 0, 0);
+    points.push(new THREE.Vector3(0, 0, 1));
 
-    console.log(this.player.position.z);
+    // this.camera.lookAt(this.player.body.position)
 
-    const g = new THREE.BufferGeometry().setFromPoints(points);
-    this.player.children[1].geometry = g;
+    this.localForward = new CANNON.Vec3(0, 0, -1); // correct?
+    this.localRight = new CANNON.Vec3(1, 0, 0); // correct?
+    var worldForward = new CANNON.Vec3();
+    this.player.body.vectorToWorldFrame(this.localForward, worldForward);
+    worldForward.y = 0;
+    worldForward = worldForward.scale(0.08);
+
+    this.player.body.position.vadd(worldForward, this.player.body.position);
+    // const g = new THREE.BufferGeometry().setFromPoints(points);
+    // this.player.children[1].geometry = g;
+
     const currentKey = KeyBoardState.currentKey();
-    // this.camera.position.x = this.cube.position.x - 0;
-    // this.camera.position.z = this.cube.position.z + 5;
-    // this.camera.position.y = this.cube.position.y + 5;
+    this.camera.lookAt(this.player.position);
+    this.camera.position.set(
+      this.player.position.x,
+      this.player.position.y + 6,
+      this.player.position.z + 10
+    );
     if (currentKey != null) {
       switch (currentKey) {
         case "w":
-          this.player.body.position.z -= this.speedX;
+          var axis = new CANNON.Vec3(0, 1, 0);
+          var angle = 0;
+          this.player.body.quaternion.setFromAxisAngle(axis, angle);
           break;
         case "a":
-          this.player.body.position.x -= this.speedX;
+          var axis = new CANNON.Vec3(0, 1, 0);
+          var angle = Math.PI / 2;
+          this.player.body.quaternion.setFromAxisAngle(axis, angle);
           break;
         case "s":
-          this.player.body.position.z += this.speedX;
+          var axis = new CANNON.Vec3(0, 1, 0);
+          var angle = Math.PI;
+          this.player.body.quaternion.setFromAxisAngle(axis, angle);
           break;
         case "d":
-          this.player.body.position.x += this.speedX;
+          var axis = new CANNON.Vec3(0, 1, 0);
+          var angle = (270 * Math.PI) / 180;
+          this.player.body.quaternion.setFromAxisAngle(axis, angle);
           break;
       }
     }
@@ -188,8 +204,9 @@ export default class RyderScene {
   updateControls() {}
 
   setLights() {
-    const light = new THREE.PointLight(0xfff000, 10, 1000);
-    light.position.set(50, 20, 10);
-    this.scene.add(light);
+    this.light = new THREE.SpotLight(0xffffff);
+    this.light.position.set(10, 30, 20);
+    this.light.target.position.set(0, 0, 0);
+    this.scene.add(this.light);
   }
 }
