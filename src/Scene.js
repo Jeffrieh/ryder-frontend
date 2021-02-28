@@ -1,8 +1,27 @@
 import "three";
 import "three/OrbitControls";
 
-import CANNON from "cannon";
+import CANNON, { Quaternion } from "cannon";
 import KeyBoardState from "./KeyboardState";
+
+const debounce = (func, wait, immediate) => {
+  var timeout;
+  console.log("starting debounce");
+  return function () {
+    console.log("in function");
+    var context = this,
+      args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    console.log(callNow);
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
 
 export default class RyderScene {
   constructor() {
@@ -18,6 +37,10 @@ export default class RyderScene {
 
     // Set Three components
     this.scene = new THREE.Scene();
+
+    var gridHelper = new THREE.GridHelper(100, 100);
+    this.scene.add(gridHelper);
+
     this.scene.fog = new THREE.Fog(0x202533, -1, 100);
 
     const axesHelper = new THREE.AxesHelper(5);
@@ -25,6 +48,7 @@ export default class RyderScene {
 
     this.clock = new THREE.Clock();
     this.clock.start();
+    this.actionHappened = false;
 
     this.speedX = 0.1;
 
@@ -34,12 +58,6 @@ export default class RyderScene {
     this.setRender();
 
     this.addObjects();
-
-    // const controls = new THREE.OrbitControls(
-    //   this.camera,
-    //   this.renderer.domElement
-    // );
-    // controls.update();
 
     this.renderer.setClearColor(0xffffff, 0);
 
@@ -64,43 +82,55 @@ export default class RyderScene {
 
     this.localForward = new CANNON.Vec3(0, 0, -1); // correct?
     this.localRight = new CANNON.Vec3(1, 0, 0); // correct?
-    var worldForward = new CANNON.Vec3();
-    this.player.body.vectorToWorldFrame(this.localForward, worldForward);
-    worldForward.y = 0;
-    worldForward = worldForward.scale(0.08);
+    this.worldForward = new CANNON.Vec3();
+    this.player.body.vectorToWorldFrame(this.localForward, this.worldForward);
+    this.worldForward.y = 0;
+    this.worldForward = this.worldForward.scale(0.08);
 
-    this.player.body.position.vadd(worldForward, this.player.body.position);
+    this.player.body.position.vadd(
+      this.worldForward,
+      this.player.body.position
+    );
+
     // const g = new THREE.BufferGeometry().setFromPoints(points);
     // this.player.children[1].geometry = g;
 
     const currentKey = KeyBoardState.currentKey();
+
     this.camera.lookAt(this.player.position);
-    this.camera.position.set(
-      this.player.position.x,
-      this.player.position.y + 6,
-      this.player.position.z + 10
-    );
-    if (currentKey != null) {
+
+    if (this.actionHappened == false && currentKey != null) {
+      console.log(this.actionHappened);
+      const vm = this;
+
       switch (currentKey) {
         case "w":
-          var axis = new CANNON.Vec3(0, 1, 0);
-          var angle = 0;
-          this.player.body.quaternion.setFromAxisAngle(axis, angle);
           break;
         case "a":
-          var axis = new CANNON.Vec3(0, 1, 0);
-          var angle = Math.PI / 2;
-          this.player.body.quaternion.setFromAxisAngle(axis, angle);
+          this.actionHappened = true;
+          var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
+          rotZ.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
+          vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
+          setTimeout(() => {
+            this.actionHappened = false;
+            console.log("setting false");
+          }, 500);
           break;
         case "s":
-          var axis = new CANNON.Vec3(0, 1, 0);
-          var angle = Math.PI;
-          this.player.body.quaternion.setFromAxisAngle(axis, angle);
+          this.player.body.quaternion.setFromVectors(
+            this.worldForward,
+            new CANNON.Vec3(0, 0, 1)
+          );
           break;
         case "d":
-          var axis = new CANNON.Vec3(0, 1, 0);
-          var angle = (270 * Math.PI) / 180;
-          this.player.body.quaternion.setFromAxisAngle(axis, angle);
+          this.actionHappened = true;
+          var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
+          rotZ.setFromAxisAngle(new CANNON.Vec3(0, -1, 0), Math.PI / 2);
+          vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
+          setTimeout(() => {
+            this.actionHappened = false;
+            console.log("setting false");
+          }, 500);
           break;
       }
     }
@@ -115,6 +145,7 @@ export default class RyderScene {
       0.01,
       50
     );
+    this.camera.position.set(0, 1, 5);
   }
 
   setRender() {
@@ -160,6 +191,7 @@ export default class RyderScene {
     group.body.position.x = group.position.x;
     group.body.position.y = group.position.y;
     group.body.position.z = group.position.z;
+    group.add(this.camera);
 
     group.body.addEventListener("collide", function (e) {
       fn(e);
@@ -175,7 +207,7 @@ export default class RyderScene {
   addObjects() {
     //set plane
 
-    this.player = this.addPlayer(0, 3, 0, () => {
+    this.player = this.addPlayer(0, 0.5, 0, () => {
       console.log("collide!");
     });
 
