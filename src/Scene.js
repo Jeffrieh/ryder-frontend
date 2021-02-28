@@ -68,14 +68,33 @@ export default class RyderScene {
     points.push(new THREE.Vector3(pointB.x, 1, pointB.z));
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    console.log(geometry);
     const line = new THREE.Line(geometry, material);
     this.scene.add(line);
   }
 
+  updateCurrentLine() {
+    this.currentLine.frustumCulled = false;
+
+    const positions = this.currentLine.geometry.attributes.position.array;
+    positions[0] = this.prevTurningPoint.x;
+    positions[1] = 1;
+    positions[2] = this.prevTurningPoint.z;
+    positions[3] = this.player.body.position.x;
+    positions[4] = 1;
+    positions[5] = this.player.body.position.z;
+    this.currentLine.frustumCulled = false;
+    this.currentLine.geometry.attributes.position.needsUpdate = true;
+    this.currentLine.geometry.computeBoundingBox();
+    this.currentLine.geometry.computeBoundingSphere();
+    console.log(this.currentLine);
+    this.currentLine.frustumCulled = false;
+  }
+
   draw() {
     // this.camera.lookAt(this.player.body.position)
-    this.localForward = new CANNON.Vec3(0, 0, -1); // correct?
-    this.localRight = new CANNON.Vec3(1, 0, 0); // correct?
+    this.localForward = new CANNON.Vec3(0, 0, -1);
+    this.localRight = new CANNON.Vec3(1, 0, 0);
     this.worldForward = new CANNON.Vec3();
     this.player.body.vectorToWorldFrame(this.localForward, this.worldForward);
     this.worldForward.y = 0;
@@ -86,12 +105,15 @@ export default class RyderScene {
       this.player.body.position
     );
 
+    console.log(this.currentLine.frustumCulled);
+
+    this.updateCurrentLine();
+
     const currentKey = KeyBoardState.currentKey();
 
     this.camera.lookAt(this.player.position);
 
     if (this.actionHappened == false && currentKey != null) {
-      const vm = this;
       var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
 
       switch (currentKey) {
@@ -105,7 +127,7 @@ export default class RyderScene {
 
       this.actionHappened = true;
 
-      vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
+      this.player.body.quaternion = this.player.body.quaternion.mult(rotZ);
       this.drawLineBetween(this.prevTurningPoint, this.player.body.position);
 
       const { x, y, z } = this.player.body.position;
@@ -155,19 +177,16 @@ export default class RyderScene {
     points.push(new THREE.Vector3(1, 0, 3));
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const positions = new Float32Array(2 * 3);
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    // const positions = new Float32Array(2 * 3);
+    // geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
-    this.line = new THREE.Line(geometry, material);
-    this.line.frustumCulled = false;
+    this.currentLine = new THREE.Line(geometry, material);
 
     player.position.set(x, y, z);
-    this.line.position.set(x - 1, y, z);
 
     const group = new THREE.Group();
 
     group.add(player);
-    group.add(this.line);
 
     group.body = new CANNON.Body({ mass: 0 });
     group.body.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)));
@@ -195,6 +214,7 @@ export default class RyderScene {
     });
 
     this.scene.add(this.player);
+    this.scene.add(this.currentLine);
 
     const planeShape = new CANNON.Plane();
     const planeBody = new CANNON.Body({ mass: 0 });
