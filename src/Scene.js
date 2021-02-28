@@ -3,25 +3,7 @@ import "three/OrbitControls";
 
 import CANNON, { Quaternion } from "cannon";
 import KeyBoardState from "./KeyboardState";
-
-const debounce = (func, wait, immediate) => {
-  var timeout;
-  console.log("starting debounce");
-  return function () {
-    console.log("in function");
-    var context = this,
-      args = arguments;
-    var later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    var callNow = immediate && !timeout;
-    console.log(callNow);
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
-};
+import CannonDebugRenderer from "./cannonDebugRenderer.js";
 
 export default class RyderScene {
   constructor() {
@@ -52,6 +34,12 @@ export default class RyderScene {
 
     this.speedX = 0.1;
 
+    this.prevTurningPoint = new CANNON.Vec3(0, 0, 0);
+    this.cannonDebugRenderer = new THREE.CannonDebugRenderer(
+      this.scene,
+      this.world
+    );
+
     // Set options of our scene
     this.setCamera();
     this.setLights();
@@ -72,67 +60,59 @@ export default class RyderScene {
     this.world.step(1 / 60);
   }
 
-  draw() {
+  drawLineBetween(pointA, pointB) {
+    const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+
     const points = [];
-    points.push(new THREE.Vector3(0, 0, 1));
-    points.push(new THREE.Vector3(this.player.position.z * -1), 0, 0);
-    points.push(new THREE.Vector3(0, 0, 1));
+    points.push(new THREE.Vector3(pointA.x, 1, pointA.z));
+    points.push(new THREE.Vector3(pointB.x, 1, pointB.z));
 
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    this.scene.add(line);
+  }
+
+  draw() {
     // this.camera.lookAt(this.player.body.position)
-
     this.localForward = new CANNON.Vec3(0, 0, -1); // correct?
     this.localRight = new CANNON.Vec3(1, 0, 0); // correct?
     this.worldForward = new CANNON.Vec3();
     this.player.body.vectorToWorldFrame(this.localForward, this.worldForward);
     this.worldForward.y = 0;
     this.worldForward = this.worldForward.scale(0.08);
-
+    this.cannonDebugRenderer.update();
     this.player.body.position.vadd(
       this.worldForward,
       this.player.body.position
     );
-
-    // const g = new THREE.BufferGeometry().setFromPoints(points);
-    // this.player.children[1].geometry = g;
 
     const currentKey = KeyBoardState.currentKey();
 
     this.camera.lookAt(this.player.position);
 
     if (this.actionHappened == false && currentKey != null) {
-      console.log(this.actionHappened);
       const vm = this;
+      var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
 
       switch (currentKey) {
-        case "w":
-          break;
         case "a":
-          this.actionHappened = true;
-          var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
           rotZ.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
-          vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
-          setTimeout(() => {
-            this.actionHappened = false;
-            console.log("setting false");
-          }, 500);
-          break;
-        case "s":
-          this.player.body.quaternion.setFromVectors(
-            this.worldForward,
-            new CANNON.Vec3(0, 0, 1)
-          );
           break;
         case "d":
-          this.actionHappened = true;
-          var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
           rotZ.setFromAxisAngle(new CANNON.Vec3(0, -1, 0), Math.PI / 2);
-          vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
-          setTimeout(() => {
-            this.actionHappened = false;
-            console.log("setting false");
-          }, 500);
           break;
       }
+
+      this.actionHappened = true;
+
+      vm.player.body.quaternion = vm.player.body.quaternion.mult(rotZ);
+      this.drawLineBetween(this.prevTurningPoint, this.player.body.position);
+
+      const { x, y, z } = this.player.body.position;
+      this.prevTurningPoint = new CANNON.Vec3(x, y, z);
+      setTimeout(() => {
+        this.actionHappened = false;
+      }, 500);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -142,10 +122,10 @@ export default class RyderScene {
     this.camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
-      0.01,
-      50
+      1,
+      1000
     );
-    this.camera.position.set(0, 1, 5);
+    this.camera.position.set(0, 4, 5);
   }
 
   setRender() {
@@ -173,18 +153,21 @@ export default class RyderScene {
     const points = [];
     points.push(new THREE.Vector3(1, 0, 0));
     points.push(new THREE.Vector3(1, 0, 3));
-    points.push(new THREE.Vector3(1, 0, 0));
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
+    const positions = new Float32Array(2 * 3);
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+    this.line = new THREE.Line(geometry, material);
+    this.line.frustumCulled = false;
 
     player.position.set(x, y, z);
-    line.position.set(x - 1, y, z);
+    this.line.position.set(x - 1, y, z);
 
     const group = new THREE.Group();
 
     group.add(player);
-    group.add(line);
+    group.add(this.line);
 
     group.body = new CANNON.Body({ mass: 0 });
     group.body.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)));
