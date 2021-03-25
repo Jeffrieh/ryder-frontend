@@ -83,12 +83,10 @@ export default class RyderScene {
     positions[3] = this.player.body.position.x;
     positions[4] = 1;
     positions[5] = this.player.body.position.z;
-    this.currentLine.frustumCulled = false;
     this.currentLine.geometry.attributes.position.needsUpdate = true;
     this.currentLine.geometry.computeBoundingBox();
     this.currentLine.geometry.computeBoundingSphere();
     console.log(this.currentLine);
-    this.currentLine.frustumCulled = false;
   }
 
   draw() {
@@ -98,7 +96,7 @@ export default class RyderScene {
     this.worldForward = new CANNON.Vec3();
     this.player.body.vectorToWorldFrame(this.localForward, this.worldForward);
     this.worldForward.y = 0;
-    this.worldForward = this.worldForward.scale(0.08);
+    this.worldForward = this.worldForward.scale(0.15);
     this.cannonDebugRenderer.update();
     this.player.body.position.vadd(
       this.worldForward,
@@ -134,7 +132,7 @@ export default class RyderScene {
       this.prevTurningPoint = new CANNON.Vec3(x, y, z);
       setTimeout(() => {
         this.actionHappened = false;
-      }, 500);
+      }, 100);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -147,12 +145,11 @@ export default class RyderScene {
       1,
       1000
     );
-    this.camera.position.set(0, 4, 5);
+    this.camera.position.set(0, 10, 5);
   }
 
   setRender() {
-    this.renderer = new THREE.WebGLRenderer();
-
+    this.renderer = new THREE.WebGLRenderer(THREE.CullFaceNone);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
   }
