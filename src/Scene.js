@@ -1,9 +1,6 @@
 import "three";
-import "three/OrbitControls";
-
-import CANNON, { Quaternion } from "cannon";
-import KeyBoardState from "./KeyboardState";
-import CannonDebugRenderer from "./cannonDebugRenderer.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
+import "three/OrbitControls"
 
 export default class RyderScene {
   constructor() {
@@ -11,131 +8,119 @@ export default class RyderScene {
   }
 
   setup() {
-    this.world = new CANNON.World();
-    this.world.gravity.set(0, -20, 0);
-
-    console.log(KeyBoardState());
-    this.KeyBoardState = KeyBoardState;
-
-    // Set Three components
     this.scene = new THREE.Scene();
+    this.turningPoints = []
 
-    var gridHelper = new THREE.GridHelper(100, 100);
-    this.scene.add(gridHelper);
+    this.turningPoints.push(new THREE.Vector3(0,0,0))
 
-    this.scene.fog = new THREE.Fog(0x202533, -1, 100);
+    console.log(this.scene)
+    const gridHelper = new THREE.GridHelper( 20, 10 );
+    this.scene.add( gridHelper );
 
-    const axesHelper = new THREE.AxesHelper(5);
-    this.scene.add(axesHelper);
+    this.setCamera()
+    this.initRenderer()
+    this.setLights()
+    this.addObjects()
 
-    this.clock = new THREE.Clock();
-    this.clock.start();
-    this.actionHappened = false;
+    console.log(this.scene)
 
-    this.speedX = 0.1;
+    window.addEventListener("keydown", (e) => {
+      this.movePlayer(e, this)
+    });
 
-    this.prevTurningPoint = new CANNON.Vec3(0, 0, 0);
-    this.cannonDebugRenderer = new THREE.CannonDebugRenderer(
-      this.scene,
-      this.world
-    );
+    new THREE.OrbitControls( this.camera, this.renderer.domElement );
 
-    // Set options of our scene
-    this.setCamera();
-    this.setLights();
-    this.setRender();
-
-    this.addObjects();
-
-    this.renderer.setClearColor(0xffffff, 0);
+    const loader = new GLTFLoader()
+    const vm = this;
+    loader.load('models/bike/scene.gltf', function(gltf, scene){
+      vm.player = gltf.scene;
+      vm.player.scale.set(0.002,0.002,0.002);
+      vm.player.forward = new THREE.Vector3(0,0,-1)
+      vm.player.rotateOnAxis(new THREE.Vector3(0,1,0), Math.PI)
+      vm.player.shouldRemove = false;
+      vm.scene.add( vm.player );
+    });
 
     this.renderer.setAnimationLoop(() => {
-      this.updatePhysics();
       this.draw();
     });
   }
 
-  updatePhysics() {
-    this.syncObjects();
-    this.world.step(1 / 60);
+  restart(){
+    console.log("restarting")
+    this.turningPoints = [];
+    this.turningPoints.push(new THREE.Vector3(0,0,0))
+
+    this.scene.remove(this.line)
+
+    this.scene.children.forEach(child => {
+      if(child.shouldRemove !== false){
+        this.scene.remove(child)
+      }
+    })
+
+    this.player.position.x = 0
+    this.player.position.z = 0
+    this.player.forward = new THREE.Vector3(0,0,-1)
+    this.player.lookAt(this.player.forward)
+
+
+    this.setCamera()
+    this.setLights();
+    this.addObjects();
+
+    console.log("scene",this.scene.clone())
+
+    const gridHelper = new THREE.GridHelper( 20, 10 );
+    this.scene.add( gridHelper );
+
+    new THREE.OrbitControls( this.camera, this.renderer.domElement );
+
+    this.renderer.setAnimationLoop(() => {
+      this.draw();
+    });
   }
 
-  drawLineBetween(pointA, pointB) {
-    const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-
-    const points = [];
-    points.push(new THREE.Vector3(pointA.x, 1, pointA.z));
-    points.push(new THREE.Vector3(pointB.x, 1, pointB.z));
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    console.log(geometry);
-    const line = new THREE.Line(geometry, material);
-    this.scene.add(line);
+  checkCollision(player, pointa, pointb){
+    if(!pointb) return false;
+    return (pointa.distanceTo(player) + pointb.distanceTo(player) == pointa.distanceTo(pointb))
   }
 
-  updateCurrentLine() {
-    this.currentLine.frustumCulled = false;
-
-    const positions = this.currentLine.geometry.attributes.position.array;
-    positions[0] = this.prevTurningPoint.x;
-    positions[1] = 1;
-    positions[2] = this.prevTurningPoint.z;
-    positions[3] = this.player.body.position.x;
-    positions[4] = 1;
-    positions[5] = this.player.body.position.z;
-    this.currentLine.geometry.attributes.position.needsUpdate = true;
-    this.currentLine.geometry.computeBoundingBox();
-    this.currentLine.geometry.computeBoundingSphere();
-    console.log(this.currentLine);
-  }
+  movePlayer(e, scene) {
+    if (event.keyCode == '37') {
+        scene.turningPoints.push(scene.player.position.clone());
+        scene.player.forward.applyAxisAngle(new THREE.Vector3(0,1,0), Math.PI / 2 )
+        scene.player.rotateOnAxis(new THREE.Vector3(0,1,0), Math.PI / 2)
+    } else if (e.keyCode == '39') {
+        scene.turningPoints.push(scene.player.position.clone());
+        scene.player.forward.applyAxisAngle(new THREE.Vector3(0,1,0), 270 * Math.PI/180 )
+        scene.player.rotateOnAxis(new THREE.Vector3(0,1,0), 270* Math.PI / 180)
+    }
+}
 
   draw() {
-    // this.camera.lookAt(this.player.body.position)
-    this.localForward = new CANNON.Vec3(0, 0, -1);
-    this.localRight = new CANNON.Vec3(1, 0, 0);
-    this.worldForward = new CANNON.Vec3();
-    this.player.body.vectorToWorldFrame(this.localForward, this.worldForward);
-    this.worldForward.y = 0;
-    this.worldForward = this.worldForward.scale(0.15);
-    this.cannonDebugRenderer.update();
-    this.player.body.position.vadd(
-      this.worldForward,
-      this.player.body.position
-    );
-
-    console.log(this.currentLine.frustumCulled);
-
-    this.updateCurrentLine();
-
-    const currentKey = KeyBoardState.currentKey();
-
-    this.camera.lookAt(this.player.position);
-
-    if (this.actionHappened == false && currentKey != null) {
-      var rotZ = new CANNON.Quaternion(0, 0, 0, 1);
-
-      switch (currentKey) {
-        case "a":
-          rotZ.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
-          break;
-        case "d":
-          rotZ.setFromAxisAngle(new CANNON.Vec3(0, -1, 0), Math.PI / 2);
-          break;
-      }
-
-      this.actionHappened = true;
-
-      this.player.body.quaternion = this.player.body.quaternion.mult(rotZ);
-      this.drawLineBetween(this.prevTurningPoint, this.player.body.position);
-
-      const { x, y, z } = this.player.body.position;
-      this.prevTurningPoint = new CANNON.Vec3(x, y, z);
-      setTimeout(() => {
-        this.actionHappened = false;
-      }, 100);
+    if(this.player){
+      this.renderer.render(this.scene, this.camera)
+      this.player.position.add(this.player.forward.clone().clampLength(0,0.1))
+      
+      const withRecentLine = [...this.turningPoints, this.player.position]
+      this.line.geometry.setFromPoints(withRecentLine)
+  
+      this.camera.lookAt(this.player.position)
+  
+        if(this.turningPoints.some((c,i) => this.checkCollision(this.player.position, c, this.turningPoints[i + 1]))){
+          //restart game
+          this.restart()
+        }
     }
+  }
 
-    this.renderer.render(this.scene, this.camera);
+  addObjects(){
+    const line = new THREE.Line( new THREE.BufferGeometry(), new THREE.LineBasicMaterial({
+      color: 0x0000ff
+    }));
+    this.scene.add( line );
+    this.line = line;
   }
 
   setCamera() {
@@ -148,92 +133,11 @@ export default class RyderScene {
     this.camera.position.set(0, 10, 5);
   }
 
-  setRender() {
+  initRenderer() {
     this.renderer = new THREE.WebGLRenderer(THREE.CullFaceNone);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
   }
-
-  syncObjects() {
-    for (const obj of this.objects) {
-      obj.position.copy(obj.body.position);
-      obj.quaternion.copy(obj.body.quaternion);
-    }
-  }
-
-  addPlayer(x, y, z, fn) {
-    const player = new THREE.Mesh(
-      new THREE.BoxGeometry(),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-
-    const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-
-    const points = [];
-    points.push(new THREE.Vector3(1, 0, 0));
-    points.push(new THREE.Vector3(1, 0, 3));
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    // const positions = new Float32Array(2 * 3);
-    // geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    this.currentLine = new THREE.Line(geometry, material);
-
-    player.position.set(x, y, z);
-
-    const group = new THREE.Group();
-
-    group.add(player);
-
-    group.body = new CANNON.Body({ mass: 0 });
-    group.body.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)));
-    group.body.position.x = group.position.x;
-    group.body.position.y = group.position.y;
-    group.body.position.z = group.position.z;
-    group.add(this.camera);
-
-    group.body.addEventListener("collide", function (e) {
-      fn(e);
-    });
-
-    this.objects.push(group);
-
-    this.world.addBody(group.body);
-
-    return group;
-  }
-
-  addObjects() {
-    //set plane
-
-    this.player = this.addPlayer(0, 0.5, 0, () => {
-      console.log("collide!");
-    });
-
-    this.scene.add(this.player);
-    this.scene.add(this.currentLine);
-
-    const planeShape = new CANNON.Plane();
-    const planeBody = new CANNON.Body({ mass: 0 });
-
-    planeBody.addShape(planeShape);
-    planeBody.quaternion.setFromAxisAngle(
-      new CANNON.Vec3(1, 0, 0),
-      -Math.PI / 2
-    );
-    this.world.addBody(planeBody);
-
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(5, 5, 5),
-      new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide })
-    );
-
-    plane.rotation.x = (90 * Math.PI) / 180;
-
-    this.scene.add(plane);
-  }
-
-  updateControls() {}
 
   setLights() {
     this.light = new THREE.SpotLight(0xffffff);
