@@ -15,7 +15,7 @@ module.exports = {
       // ...
     },
   },
-  watch: true,
+  watch: false,
   watchOptions: {},
   entry: "./src/index.js",
   output: {
