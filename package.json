@@ -16,6 +16,8 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
+    "@geckos.io/client": "^1.7.2",
+    "@geckos.io/snapshot-interpolation": "^1.0.2",
     "cannon": "^0.6.2",
     "lodash": "^4.17.21",
     "three": "^0.125.2"
