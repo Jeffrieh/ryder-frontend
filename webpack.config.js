@@ -16,7 +16,7 @@ module.exports = {
     },
   },
   //TODO make this dependant on env.
-  watch: true,
+  watch: false,
   watchOptions: {},
   entry: "./src/index.js",
   output: {
