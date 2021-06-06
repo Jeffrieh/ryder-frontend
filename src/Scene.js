@@ -1,11 +1,11 @@
 import "three";
-import "three/OrbitControls";
 import geckos from "@geckos.io/client";
 import {
   SnapshotInterpolation,
   Vault,
 } from "@geckos.io/snapshot-interpolation";
 import Player from "./Player";
+import { BoxGeometry, Vector3 } from "three";
 const SI = new SnapshotInterpolation();
 
 let loadingPlayer = false;
@@ -16,7 +16,7 @@ export default class RyderScene {
   }
 
   async loadPlayer(id, scene) {
-    console.log("loading player..");
+    console.log("loading player.,.,");
     const p = await Player.load()
 
     //wait for the player to finish loading..
@@ -31,7 +31,9 @@ export default class RyderScene {
   }
 
   setup() {
-    this.channel = geckos({});
+    this.channel = geckos({url : "http://35.198.143.173"});
+    console.log(this.channel.url);
+    // this.channel = geckos({});
     this.playerVault = new Vault();
     this.players = new Map();
     // this.clock = new THREE.Clock();
@@ -40,11 +42,24 @@ export default class RyderScene {
       //load and add the player.
       const p = await this.loadPlayer(this.channel.id, this.scene);
       this.player = p;
+      this.player.attach(this.camera);
 
       if (error) {
         console.error(error.message);
         return;
       }
+
+      this.channel.on("removePlayer", id => {
+        // read the snapshot
+        // console.log("update from server!", snapshot);
+        if(this.players.has(id)){
+          // this.players.delete(id);
+          const player = this.players.get(id);
+          this.scene.remove(player.line)
+          this.scene.remove(player);
+          console.log("removeing", id);
+        }
+      });
 
       this.channel.on("update", (snapshot) => {
         // read the snapshot
@@ -61,20 +76,14 @@ export default class RyderScene {
 
     this.scene = new THREE.Scene();
 
-    this.turningPoints = [];
-
-    this.turningPoints.push(new THREE.Vector3(0, 0, 0));
-
+    this.addObjects();
     this.setCamera();
     this.initRenderer();
     this.setLights();
-    this.addObjects();
 
     window.addEventListener("keydown", (e) => {
       this.movePlayer(e, this);
     });
-
-    new THREE.OrbitControls(this.camera, this.renderer.domElement);
 
     this.renderer.setAnimationLoop(() => {
       this.draw();
@@ -112,65 +121,15 @@ export default class RyderScene {
     }
   }
 
-  // restart() {
-  //   this.turningPoints = [];
-  //   this.turningPoints.push(new THREE.Vector3(0, 0, 0));
-
-  //   this.scene.remove(this.line);
-
-  //   this.scene.children.forEach((child) => {
-  //     if (child.shouldRemove !== false) {
-  //       this.scene.remove(child);
-  //     }
-  //   });
-
-  //   this.player.position.x = 0;
-  //   this.player.position.z = 0;
-  //   this.player.forward = new THREE.Vector3(0, 0, -1);
-  //   this.player.lookAt(this.player.forward);
-
-  //   this.setCamera();
-  //   this.setLights();
-  //   this.addObjects();
-
-  //   const gridHelper = new THREE.GridHelper(20, 10);
-  //   this.scene.add(gridHelper);
-
-  //   // new THREE.OrbitControls( this.camera, this.renderer.domElement );
-
-  //   this.renderer.setAnimationLoop(() => {
-  //     this.draw();
-  //   });
-  // }
-
-  // checkCollision(player, pointa, pointb) {
-  //   if (!pointb) return false;
-  //   return (
-  //     pointa.distanceTo(player) + pointb.distanceTo(player) == pointa.distanceTo(pointb)
-  //   );
-  // }
-
   movePlayer(e, scene) {
     if (event.keyCode == "37") {
-      // scene.turningPoints.push(scene.player.position.clone());
-      // scene.player.forward
-      //   .applyEuler(new THREE.Euler(0, Math.PI / 2, 0, "XYZ"))
-      //   .round();
       this.channel.emit("move", { direction: "left" });
     } else if (e.keyCode == "39") {
-      //right
-      // scene.turningPoints.push(scene.player.position.clone());
-      // scene.player.forward
-      //   .applyEuler(new THREE.Euler(0, (270 * Math.PI) / 180, 0, "XYZ"))
-      //   .round();
-      // scene.player.rotateOnAxis(new THREE.Vector3(0,1,0), 270* Math.PI / 180)
       this.channel.emit("move", { direction: "right" });
     }
   }
 
   clientPrediction() {
-    // const delta = this.clock.getDelta();
-    // console.log(0.1 * delta);
     this.player.position.add(this.player.forward.clone().clampLength(0, 0.05));
     this.playerVault.add(
       SI.snapshot.create([
@@ -210,14 +169,13 @@ export default class RyderScene {
             // if (id === this.channel.id) return;
 
             const player = this.players.get(id);
-            console.log(this.players);
             if(player){
               player.position.x = position.x;
               player.position.z = position.z;
-  
               player.forward.x = forward.x;
               player.forward.z = forward.z;
               player.line.geometry.setFromPoints(points);
+              player.line.geometry.computeBoundingSphere();
               player.lookAt(player.position.clone().add(player.forward));
             }
           } else {
@@ -233,7 +191,7 @@ export default class RyderScene {
 
       //TODO FIX THIS :
       // this.player.lookAt(this.player.position.clone().add(this.player.forward));
-      this.camera.lookAt(this.player.position);
+      // this.camera.lookAt(this.player.position);
     }
   }
 
@@ -242,13 +200,13 @@ export default class RyderScene {
       75,
       window.innerWidth / window.innerHeight,
       1,
-      1000
+      50000
     );
-    this.camera.position.set(0, 10, 5);
+    this.camera.position.set(0, 4, 10);
   }
 
   initRenderer() {
-    this.renderer = new THREE.WebGLRenderer(THREE.CullFaceNone);
+    this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
   }
@@ -261,8 +219,29 @@ export default class RyderScene {
   }
 
   addObjects(){
-    //add plane 
+    // add plane 
     const axes = "xzy";
+
+    const size = 50;
+    const wallPositions = [
+      new THREE.Vector3(size, 0, 0),
+      new THREE.Vector3(0, 0, size),
+      new THREE.Vector3(-size, 0, 0),
+      new THREE.Vector3(0, 0, -size),
+    ]
+
+    let wall;
+    let i = 0;
+
+    for(const pos of wallPositions){
+      wall = new THREE.Mesh( new THREE.BoxGeometry( size * 2, size / 2, 1 ), new THREE.MeshBasicMaterial( {color: 0xfff} ) );
+      this.scene.add( wall );
+      wall.position.set(pos.x, pos.y, pos.z);
+      if(i % 2 == 0){wall.rotateOnAxis(new Vector3(0,1,0), Math.PI / 2)}
+      wall.position.y = size / 4;
+      i++;
+    }
+
     const planeAxes = axes.substr( 0, 2 );
     const geometry = new THREE.PlaneBufferGeometry( 2, 2, 1, 1 );
     const material = new THREE.ShaderMaterial( {
@@ -271,16 +250,16 @@ export default class RyderScene {
   
       uniforms: {
         uSize1: {
-          value: 10
+          value: 1
         },
         uSize2: {
-          value: 100
+          value: 1
         },
         uColor: { 
-          value: new THREE.Color("white")
+          value: new THREE.Color("green")
         },
         uDistance: {
-          value: 1000
+          value: 250
         }
       },
       transparent: true,
@@ -332,6 +311,12 @@ export default class RyderScene {
         derivatives: true
       }
     } );
+
+    // const geometry = new THREE.PlaneGeometry( 1, 1 );
+    // const material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
+    // const plane = new THREE.Mesh( geometry, material );
+    // plane.frustumCulled = false;
+    // this.scene.add( plane );
 
     const m = new THREE.Mesh(geometry, material);
     m.frustumCulled = false;

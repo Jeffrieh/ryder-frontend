@@ -17,19 +17,19 @@ export default class Player extends Object3D{
         player.forward = new THREE.Vector3(0, 0, -1);
         player.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI);
         player.shouldRemove = false;
-        console.log("loaded : " , player);
+        player.frustumCulled = false;
     })
 
     const line = new THREE.Line(
         new THREE.BufferGeometry(),
         new THREE.LineBasicMaterial({
+          linewidth: 5,
           color: 0x0000ff,
         })
       );
 
-    line.frustumCulled = false;
+    // line.helper = box
     player.line = line;
-    player.frustumCulled = false;
     return player;
    }
 }

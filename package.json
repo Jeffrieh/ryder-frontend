@@ -20,6 +20,6 @@
     "@geckos.io/snapshot-interpolation": "^1.0.2",
     "cannon": "^0.6.2",
     "lodash": "^4.17.21",
-    "three": "^0.125.2"
+    "three": "^0.129.0"
   }
 }
