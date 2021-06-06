@@ -31,7 +31,7 @@ export default class RyderScene {
   }
 
   setup() {
-    this.channel = geckos({url : "http://35.198.143.173"});
+    this.channel = geckos({url : "https://35.198.143.173"});
     console.log(this.channel.url);
     // this.channel = geckos({});
     this.playerVault = new Vault();
