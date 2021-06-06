@@ -33,6 +33,7 @@ export default class RyderScene {
   setup() {
     this.channel = geckos({});
     console.log(this.channel.url);
+    console.log("testing..");
     // this.channel = geckos({});
     this.playerVault = new Vault();
     this.players = new Map();
