@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="card-content">
+    <div class="title">Rooms</div>
+    <div class="content field">
+      Welcome {{username}}!
+      <br />
+      <ul class="people_list">
+        {{#each rooms}}
+          <div class="card">
+            <div class="card-content">
+              <div class="columns">
+                <div class="column is-four-fifths">{{this.name}}</div>
+                <div class="column"><button
+          class="button is-primary mt-2"
+                 id="create">Join</button></div>
+              </div>
+            </div>
+          </div>
+        {{/each}}
+      </ul>
+      <footer class="card-footer">
+        <button
+          id="create"
+          disabled="disabled"
+          class="button is-primary mt-2"
+        >Create new room!</button>
+      </footer>
+    </div>
+  </div>
+</div>

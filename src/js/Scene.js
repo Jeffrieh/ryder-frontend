@@ -31,9 +31,10 @@ export default class RyderScene {
   }
 
   setup() {
+    // this.channel = geckos({url : "http://35.198.143.173"});
     this.channel = geckos({});
+
     console.log(this.channel.url);
-    console.log("testing..");
     // this.channel = geckos({});
     this.playerVault = new Vault();
     this.players = new Map();
@@ -209,7 +210,7 @@ export default class RyderScene {
   initRenderer() {
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(this.renderer.domElement);
+    document.getElementById("main").appendChild(this.renderer.domElement)
   }
 
   setLights() {

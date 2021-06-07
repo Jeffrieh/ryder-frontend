@@ -1,0 +1,32 @@
+      {{!-- <div id="test-container">{{firstName}}</div> --}}
+      <div id="main" class="container-center">
+        <div class="container">
+      {{#unless gameActive}}
+      
+      {{#unless username}}
+      <div class="columns">
+        <div class="column">
+          <h1 id="pagetitle" class="title">{{appName}}</h1>
+       <p class="subtitle">
+        A HTML5 Canvas game using <a href="https://geckosio.github.io/">Geckos.io</a> and
+        <a
+          href="https://threejs.org/"
+          >THREE.js</a
+        >
+      </p>
+        </div>
+        <div class="column">
+      {{> username}}
+        </div>
+      </div>
+      
+      {{else}}
+      {{> rooms}}
+      {{/unless}}
+      {{/unless}}
+      </div>
+      </div>
+
+
+     
+      
