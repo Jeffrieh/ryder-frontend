@@ -1,6 +1,6 @@
 import _ from "lodash";
 require('./scss/ryder.scss');
-import Scene from "./js/Scene";
+import Scene from "./js/RyderScene";
 require('rivets');
 
 // import 'three';

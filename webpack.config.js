@@ -25,7 +25,7 @@ module.exports = {
   },
   module: {
     rules: [
-      // { test: /\.hbs$/, use: 'handlebars-loader?helperDirs[]=' + __dirname + "/src/helpers" },
+      { test: /\.hbs$/, use: 'handlebars-loader?helperDirs[]=' + __dirname + "/src/helpers" },
       {test: /\.scss$/,
       use: [
           MiniCssExtractPlugin.loader,
