@@ -1,23 +1,9 @@
-Jenkinsfile (Declarative Pipeline)
 pipeline {
-    agent any
-    options {
-        skipStagesAfterUnstable()
-    }
+    agent { docker { image 'node:14-alpine' } }
     stages {
-        stage('Build') {
+        stage('build') {
             steps {
-                echo 'Buildinggg'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying'
+                sh 'npm --version'
             }
         }
     }
