@@ -1,22 +1,9 @@
 pipeline {
-    agent any
-    options {
-        skipStagesAfterUnstable()
-    }
+    agent { dockerfile true }
     stages {
-        stage('Build') {
+        stage('Build') { 
             steps {
-                echo 'Building'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying'
+                sh 'npm install' 
             }
         }
     }
