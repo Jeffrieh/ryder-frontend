@@ -1,10 +1,22 @@
 pipeline {
-    agent { docker { image 'node:14-alpine' } }
+    agent any
+    options {
+        skipStagesAfterUnstable()
+    }
     stages {
-        stage('build') {
+        stage('Build') {
             steps {
-               echo 'Building..'
-                sh 'npm --version'
+                echo 'Building'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying'
             }
         }
     }
